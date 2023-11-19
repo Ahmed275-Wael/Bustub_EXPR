@@ -24,11 +24,14 @@ TableHeap::TableHeap(BufferPoolManager *buffer_pool_manager, LockManager *lock_m
       lock_manager_(lock_manager),
       log_manager_(log_manager),
       first_page_id_(first_page_id) {
-  auto first_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
-  BUSTUB_ASSERT(first_page != nullptr,
+  auto first_page = static_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
+  //RID rid;
+  //&& first_page->GetFirstTupleRid(&rid) == true
+  BUSTUB_ASSERT(first_page != nullptr ,
                 "Couldn't retrieve a page for the table heap");
-  first_page->Init(first_page_id_, BUSTUB_PAGE_SIZE, INVALID_LSN, log_manager_, nullptr);
-  buffer_pool_manager_->UnpinPage(first_page_id_, true);    
+  //std::cerr<<"RRRRRRRRIIIIIIIIIIDDDDDDDD"<<rid.ToString();
+  //first_page->Init(first_page_id_, BUSTUB_PAGE_SIZE, INVALID_LSN, log_manager_, nullptr);
+  buffer_pool_manager_->UnpinPage(first_page_id_, false);    
       }
 
 TableHeap::TableHeap(BufferPoolManager *buffer_pool_manager, LockManager *lock_manager, LogManager *log_manager,
@@ -347,10 +350,12 @@ auto TableHeap::Begin(Transaction *txn) -> TableIterator {
   RID rid;
   auto page_id = first_page_id_;
   while (page_id != INVALID_PAGE_ID) {
+    LOG_DEBUG("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS\n");
     auto page = static_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));
     page->RLatch();
     // If this fails because there is no tuple, then RID will be the default-constructed value, which means EOF.
     auto found_tuple = page->GetFirstTupleRid(&rid);
+    std::cerr<<rid.ToString()<<" page_id: "<<page_id;
     page->RUnlatch();
     buffer_pool_manager_->UnpinPage(page_id, false);
     if (found_tuple) {

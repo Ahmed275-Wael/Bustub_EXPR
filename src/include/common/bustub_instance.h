@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "common/config.h"
 #include "common/util/string_util.h"
@@ -225,7 +225,7 @@ class BustubInstance {
   /**
    * Execute a SQL query in the BusTub instance with provided txn.
    */
-  auto ExecuteSqlTxn(const std::string &sql, ResultWriter &writer, Transaction *txn) -> bool;
+  auto ExecuteSqlTxn(const std::string &sql, ResultWriter &writer, bustub::Binder &binder,Transaction *txn) -> bool;
 
   /**
    * FOR TEST ONLY. Generate test tables in this BusTub instance.
@@ -243,7 +243,7 @@ class BustubInstance {
 
   // TODO(chi): change to unique_ptr. Currently they're directly referenced by recovery test, so
   // we cannot do anything on them until someone decides to refactor the recovery test.
-
+  bustub::Binder *binder_;
   DiskManager *disk_manager_;
   BufferPoolManager *buffer_pool_manager_;
   LockManager *lock_manager_;

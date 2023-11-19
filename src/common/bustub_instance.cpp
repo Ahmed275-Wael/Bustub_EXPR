@@ -3,7 +3,7 @@
 #include <string>
 #include <tuple>
 
-#include "binder/binder.h"
+
 #include "binder/bound_expression.h"
 #include "binder/bound_statement.h"
 #include "binder/statement/create_statement.h"
@@ -67,22 +67,20 @@ BustubInstance::BustubInstance(const std::string &db_file_name) {
   // Checkpoint related.
   checkpoint_manager_ = new CheckpointManager(txn_manager_, log_manager_, buffer_pool_manager_);
 
-  // Catalog.
-  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_);
   bool init = disk_manager_->GetInit();
+  
+  // Catalog.
+  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_, txn_manager_->Begin(),init);
+  // Binder.
+  
+  std::shared_lock<std::shared_mutex> l(catalog_lock_);
+  binder_ = new bustub::Binder(*catalog_);
+  l.unlock();
   if (init) {
-    std::vector<Column> columns {Column{"table_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
-    Schema schema(columns);
-    TableInfo* catalog_table = catalog_->CreateTable(nullptr,"meta_tables",schema);
-    BUSTUB_ASSERT(catalog_table->table_->GetFirstPageId() == 0, "Catalog isn't at page 0 FUCCCCK");
-  }
-  else{
-    auto meta_tables_Tableheap = std::make_unique<TableHeap>(buffer_pool_manager_, lock_manager_, log_manager_,0);
-    //auto table_oid = catalog_->Get_next_table_oid_().fetch_add(1);
-    std::vector<Column> columns {Column{"table_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
-    Schema schema(columns);
-    auto meta = std::make_unique<TableInfo>(schema, "meta_tables", std::move(meta_tables_Tableheap), 0);
-    catalog_->emplace_table_in_catalog(0, "meta_tables", std::move(meta));
+    auto writer = bustub::FortTableWriter();
+    std::string Catalog_init_query = "create table meta_tables(page_id INTEGER,table_name VARCHAR(30));";
+    ExecuteSql(Catalog_init_query, writer);
+    LOG_DEBUG("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   }
   // Execution engine.
   execution_engine_ = new ExecutionEngine(buffer_pool_manager_, txn_manager_, catalog_);
@@ -114,7 +112,7 @@ BustubInstance::BustubInstance() {
   checkpoint_manager_ = new CheckpointManager(txn_manager_, log_manager_, buffer_pool_manager_);
 
   // Catalog.
-  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_);
+  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_,txn_manager_->Begin(),true);
 
   // Execution engine.
   execution_engine_ = new ExecutionEngine(buffer_pool_manager_, txn_manager_, catalog_);
@@ -124,16 +122,16 @@ void BustubInstance::CmdDisplayTables(ResultWriter &writer) {
   auto table_names = catalog_->GetTableNames();
   writer.BeginTable(false);
   writer.BeginHeader();
-  writer.WriteHeaderCell("oid");
+//  writer.WriteHeaderCell("oid");
   writer.WriteHeaderCell("name");
-  writer.WriteHeaderCell("cols");
+//  writer.WriteHeaderCell("cols");
   writer.EndHeader();
   for (const auto &name : table_names) {
     writer.BeginRow();
-    const auto *table_info = catalog_->GetTable(name);
-    writer.WriteCell(fmt::format("{}", table_info->oid_));
-    writer.WriteCell(table_info->name_);
-    writer.WriteCell(table_info->schema_.ToString());
+  //  const auto *table_info = catalog_->GetTable(name);
+  //  writer.WriteCell(fmt::format("{}", table_info->oid_));
+    writer.WriteCell(name);
+  //  writer.WriteCell(table_info->schema_.ToString());
     writer.EndRow();
   }
   writer.EndTable();
@@ -189,13 +187,13 @@ see the execution plan of your query.
 
 auto BustubInstance::ExecuteSql(const std::string &sql, ResultWriter &writer) -> bool {
   auto txn = txn_manager_->Begin();
-  auto result = ExecuteSqlTxn(sql, writer, txn);
+  auto result = ExecuteSqlTxn(sql, writer, *binder_,  txn);
   txn_manager_->Commit(txn);
   delete txn;
   return result;
 }
 
-auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer, Transaction *txn) -> bool {
+auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer, bustub::Binder &binder,Transaction *txn) -> bool {
   if (!sql.empty() && sql[0] == '\\') {
     // Internal meta-commands, like in `psql`.
     if (sql == "\\dt") {
@@ -215,11 +213,13 @@ auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer,
 
   bool is_successful = true;
 
+  // std::shared_lock<std::shared_mutex> l(catalog_lock_);
+  // bustub::Binder binder(*catalog_);
+  // binder.ParseAndSave(sql);
+  // l.unlock();
   std::shared_lock<std::shared_mutex> l(catalog_lock_);
-  bustub::Binder binder(*catalog_);
   binder.ParseAndSave(sql);
   l.unlock();
-
   for (auto *stmt : binder.statement_nodes_) {
     auto statement = binder.BindStatement(stmt);
     switch (statement->type_) {
@@ -235,6 +235,19 @@ auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer,
         }
         WriteOneCell(fmt::format("Table created with id = {}", info->oid_), writer);
         LOG_DEBUG("Page Id %d" , info->table_->GetFirstPageId());
+        
+        //buffer_pool_manager_->FlushPage(0);
+        std::string str = std::to_string(info->oid_);
+        std::string str_2 = std::to_string(info->table_->GetFirstPageId());
+        std::string name = std::move(info->name_);
+        const std::string Catalog_insert_query = "insert into meta_tables values("+str_2+",'"+name+"');"; 
+        //auto writer_1 = bustub::FortTableWriter();
+        std::cerr<<Catalog_insert_query;
+
+        ExecuteSqlTxn(Catalog_insert_query, writer, binder, txn);
+        LOG_DEBUG("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK");
+        std::cerr<<"\nPage name :" << info->name_;
+        buffer_pool_manager_->FlushPage(0);
         continue;
       }
       case StatementType::INDEX_STATEMENT: {

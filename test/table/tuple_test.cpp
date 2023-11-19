@@ -171,7 +171,7 @@ TEST(TupleTest, TableHeapLargeInsertion) {
   }
   // LOG_DEBUG("Tuples are inserted sucessfullyy!!!");
   TableIterator itr = table->Begin(transaction);
- 
+
     // std::cout << itr->ToString(schema) << std::endl;
     Tuple tuple2 = *itr;
  

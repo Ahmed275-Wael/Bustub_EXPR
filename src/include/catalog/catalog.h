@@ -53,7 +53,7 @@ struct TableInfo {
   /** The table name */
   const std::string name_;
   /** An owning pointer to the table heap */
-  std::unique_ptr<TableHeap> table_;
+  std::unique_ptr<TableHeap> table_; 
   /** The table OID */
   const table_oid_t oid_;
 };
@@ -112,9 +112,50 @@ class Catalog {
    * @param lock_manager The lock manager in use by the system
    * @param log_manager The log manager in use by the system
    */
-  Catalog(BufferPoolManager *bpm, LockManager *lock_manager, LogManager *log_manager)
-      : bpm_{bpm}, lock_manager_{lock_manager}, log_manager_{log_manager} {}
-
+  Catalog(BufferPoolManager *bpm, LockManager *lock_manager, LogManager *log_manager, Transaction* txn, bool init)
+      : bpm_{bpm}, lock_manager_{lock_manager}, log_manager_{log_manager} {
+       if (!init) {
+      //   std::vector<Column> columns {Column{"table_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
+      //   // Schema schema(columns);
+      //   // TableInfo* catalog_table = CreateTable(nullptr,"meta_tables",schema);
+      //   // BUSTUB_ASSERT(catalog_table->table_->GetFirstPageId() == 0, "Catalog isn't at page 0 FUCCCCK");
+      //   create_CatalogTable(columns, "meta_tables",txn);
+      // }
+      // else{
+        // auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,0);
+        //auto table_oid = catalog_->Get_next_table_oid_().fetch_add(1);
+        std::vector<Column> columns {Column{"table_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
+        get_CatalogTable(columns, "meta_tables", txn);
+        // Schema schema(columns);
+        // auto meta = std::make_unique<TableInfo>(schema, "meta_tables", std::move(meta_tables_Tableheap), 0);
+        // emplace_table_in_catalog(0, "meta_tables", std::move(meta));
+      }
+      }
+  void create_CatalogTable(std::vector<Column> &columns, std::string CatalogTable_name, Transaction* txn){
+      Schema schema(columns);
+      TableInfo* catalog_table = CreateTable(txn,CatalogTable_name,schema);
+      BUSTUB_ASSERT(catalog_table->table_->GetFirstPageId() == 0, "Catalog isn't at page 0 FUCCCCK");
+  }
+  void get_CatalogTable(std::vector<Column> &columns, std::string CatalogTable_name, Transaction* txn){
+      TableHeap* tmpT = new TableHeap(bpm_, lock_manager_, log_manager_,0);
+      LOG_DEBUG("SHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII");
+      Schema schema(columns);
+      TableIterator itr = tmpT->Begin(txn);
+      while (itr != tmpT->End()) {
+        LOG_DEBUG("oooooooooooooooooooooooooooooooooooooooooooooooooooooo");
+        Tuple tmp = *itr;
+        //auto table_oid = tmp.GetValue(&schema,0).GetAs<uint32_t>();
+        auto table_name = tmp.GetValue(&schema,1).ToString();
+        auto page_id = tmp.GetValue(&schema,0).GetAs<uint32_t>();
+        auto table_oid = next_table_oid_.fetch_add(1);
+        auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,page_id);
+        auto meta = std::make_unique<TableInfo>(schema, table_name, std::move(meta_tables_Tableheap), table_oid);
+        table_names_.emplace(table_name, table_oid);
+        emplace_table_in_catalog(table_oid, table_name, std::move(meta));
+        ++itr;
+      }
+      delete  tmpT; 
+  }
   /**
    * Create a new table and return its metadata.
    * @param txn The transaction in which the table is being created
@@ -147,15 +188,42 @@ class Catalog {
     auto *tmp = meta.get();
 
     // Update the internal tracking mechanisms
-    tables_.emplace(table_oid, std::move(meta));
+  //  tables_.emplace(table_oid, std::move(meta));
     table_names_.emplace(table_name, table_oid);
-    index_names_.emplace(table_name, std::unordered_map<std::string, index_oid_t>{});
-
+  //  index_names_.emplace(table_name, std::unordered_map<std::string, index_oid_t>{});
+    emplace_table_in_catalog(table_oid, table_name, std::move(meta));
+    //Here we should call tables_[0] to get the catalog table TableInfo* and then we get its table heap and insert in it the created table meta
+    //====================================Insertion in Catalog Table=============================================
+    // std::vector<Value> values;
+    // Value v(TypeId::INVALID);
+    // for (uint32_t i = 0; i < schema.GetColumnCount(); i++) {
+    // // get type
+    // const auto &col = schema.GetColumn(i);
+    // TypeId type = col.GetType();
+    // switch (type) {
+    //   case TypeId::INTEGER:
+    //     v = Value(type, int32_t(table_oid));
+    //     break;
+    //   case TypeId::VARCHAR: {
+    //     v = Value(type, table_name);
+    //     break;
+    //   }
+    //   default:
+    //     break;
+    // }
+    // values.emplace_back(v);
+    // }
+    // Tuple tuple(values, &schema);
+    // RID rid;
+    // assert(GetTable("meta_tables")->table_.get()->InsertTuple(tuple, &rid, txn) == true);
+    // bpm_->FlushPage(0);
     return tmp;
   }
+
   void emplace_table_in_catalog(std::atomic<table_oid_t> table_oid, std::string table_name, std::unique_ptr<TableInfo> meta){
     tables_.emplace(table_oid, std::move(meta));
-    table_names_.emplace(table_name, table_oid);
+    //table_names_.emplace(table_name, table_oid);
+    index_names_.emplace(table_name, std::unordered_map<std::string, index_oid_t>{});
   }
   // auto Get_next_table_oid_() ->std::atomic<table_oid_t>{
   //   return next_table_oid_;

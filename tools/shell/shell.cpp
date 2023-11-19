@@ -21,7 +21,7 @@ void signalHandler(int signum) {
 
     if (myInstance != nullptr) {
        // myInstance->cleanup();  // Perform cleanup for the instance
-        delete [] myInstance;      // Delete the instance
+        delete  myInstance;      // Delete the instance
         //myInstance = nullptr;   // Reset the pointer
     }
 

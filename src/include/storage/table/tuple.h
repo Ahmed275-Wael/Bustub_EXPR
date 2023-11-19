@@ -96,6 +96,7 @@ class Tuple {
     int byteIndex = colIdx / 8;
     int bitOffset = colIdx % 8;
     bitMapPtr_[byteIndex] |= (1 << bitOffset);
+    std::cerr<<"I am nulllll"<<"="<<colIdx;
   }  
   auto isColNull(const Schema *schema, uint32_t colIdx)  const-> bool {
    

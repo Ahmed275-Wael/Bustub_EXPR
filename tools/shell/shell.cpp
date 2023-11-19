@@ -8,6 +8,10 @@
 #include "linenoise/linenoise.h"
 #include "utf8proc/utf8proc.h"
 #include <csignal>
+#ifdef __cplusplus
+extern "C"
+#endif
+const char* __asan_default_options() { return "detect_leaks=0"; }
 void cleanup() {
         // Perform cleanup operations here
         std::cout << "Cleaning up MyClass instance...\n";

@@ -140,18 +140,63 @@ class Catalog {
       TableHeap* tmpT = new TableHeap(bpm_, lock_manager_, log_manager_,0);
       LOG_DEBUG("SHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII");
       Schema schema(columns);
+      std::vector<Column> schema_columns {Column{"table_page_id", TypeId::INTEGER},Column{"index", TypeId::INTEGER},Column{"col_len", TypeId::INTEGER},Column{"col_name", TypeId::VARCHAR, 30},Column{"col_type", TypeId::VARCHAR, 30}};
+      Schema schemaOfSchemas(schema_columns);
       TableIterator itr = tmpT->Begin(txn);
+
       while (itr != tmpT->End()) {
+        //we iterate through the tables
         LOG_DEBUG("oooooooooooooooooooooooooooooooooooooooooooooooooooooo");
         Tuple tmp = *itr;
         //auto table_oid = tmp.GetValue(&schema,0).GetAs<uint32_t>();
         auto table_name = tmp.GetValue(&schema,1).ToString();
         auto page_id = tmp.GetValue(&schema,0).GetAs<uint32_t>();
+        if(page_id != 0 && page_id != 1){
+
+        TableHeap* tmpS = new TableHeap(bpm_, lock_manager_, log_manager_,1);
+        TableIterator itr_S = tmpS->Begin(txn);
+        std::vector<Column> table_columns;
+
+        while (itr_S != tmpS->End()) {
+          Tuple schema_tuple = *itr_S;
+          auto table_page_id = schema_tuple.GetValue(&schemaOfSchemas,0).GetAs<uint32_t>();
+          if(table_page_id == page_id){
+            auto column_name = schema_tuple.GetValue(&schemaOfSchemas,3).ToString();
+            auto col_len = schema_tuple.GetValue(&schemaOfSchemas,2).GetAs<uint32_t>();
+            auto column_type = schema_tuple.GetValue(&schemaOfSchemas,4).ToString();
+            if(column_type == "VARCHAR"){
+              
+              table_columns.push_back(Column{column_name, TypeId::VARCHAR, col_len});
+            }
+            else{
+              table_columns.push_back(Column{column_name, TypeId::INTEGER});
+            }
+          }
+          ++itr_S;
+        }
+        delete tmpS;
+        Schema table_schema(table_columns);
+
+        auto table_oid = next_table_oid_.fetch_add(1);
+        auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,page_id);
+        auto meta = std::make_unique<TableInfo>(table_schema, table_name, std::move(meta_tables_Tableheap), table_oid);
+        table_names_.emplace(table_name, table_oid);
+        emplace_table_in_catalog(table_oid, table_name, std::move(meta));
+        }
+        else{
+        if(page_id == 1){
+        auto table_oid = next_table_oid_.fetch_add(1);
+        auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,page_id);
+        auto meta = std::make_unique<TableInfo>(schemaOfSchemas, table_name, std::move(meta_tables_Tableheap), table_oid);
+        table_names_.emplace(table_name, table_oid);
+        emplace_table_in_catalog(table_oid, table_name, std::move(meta));
+        }else{
         auto table_oid = next_table_oid_.fetch_add(1);
         auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,page_id);
         auto meta = std::make_unique<TableInfo>(schema, table_name, std::move(meta_tables_Tableheap), table_oid);
         table_names_.emplace(table_name, table_oid);
         emplace_table_in_catalog(table_oid, table_name, std::move(meta));
+        }}
         ++itr;
       }
       delete  tmpT; 

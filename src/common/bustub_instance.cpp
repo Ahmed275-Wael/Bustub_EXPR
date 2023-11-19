@@ -80,6 +80,8 @@ BustubInstance::BustubInstance(const std::string &db_file_name) {
     auto writer = bustub::FortTableWriter();
     std::string Catalog_init_query = "create table meta_tables(page_id INTEGER,table_name VARCHAR(30));";
     ExecuteSql(Catalog_init_query, writer);
+    std::string Schema_Init_query = "create table meta_schemas(table_page_id INTEGER,index INTEGER,col_len INTEGER,col_name VARCHAR(30),col_type VARCHAR(30));";
+    ExecuteSql(Schema_Init_query, writer);
     LOG_DEBUG("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   }
   // Execution engine.
@@ -181,8 +183,10 @@ unsupported SQL queries. This shell will be able to run `create table` only
 after you have completed the buffer pool manager. It will be able to execute SQL
 queries after you have implemented necessary query executors. Use `explain` to
 see the execution plan of your query.
-)";
+Slam ya ebn el3beta)";
   WriteOneCell(help, writer);
+  this->~BustubInstance();
+  exit(0);
 }
 
 auto BustubInstance::ExecuteSql(const std::string &sql, ResultWriter &writer) -> bool {
@@ -204,7 +208,7 @@ auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer,
       CmdDisplayIndices(writer);
       return true;
     }
-    if (sql == "\\help") {
+    if (sql == "\\exit") {
       CmdDisplayHelp(writer);
       return true;
     }
@@ -243,11 +247,33 @@ auto BustubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer,
         const std::string Catalog_insert_query = "insert into meta_tables values("+str_2+",'"+name+"');"; 
         //auto writer_1 = bustub::FortTableWriter();
         std::cerr<<Catalog_insert_query;
-
+        // std::vector<Column> schema_columns {Column{"table_page_id", TypeId::INTEGER},Column{"index", TypeId::INTEGER},Column{"col_len", TypeId::INTEGER},Column{"col_name", TypeId::VARCHAR, 30},Column{"col_type", TypeId::VARCHAR, 30}};
+        // std::unique_lock<std::shared_mutex> l2(catalog_lock_);
+        // auto info_2 = catalog_->CreateTable(txn, "meta_schemas", Schema(schema_columns));
+        // l2.unlock();
         ExecuteSqlTxn(Catalog_insert_query, writer, binder, txn);
+        if(catalog_->GetTable("meta_schemas") != nullptr){
+        for(auto column : create_stmt.columns_){
+          auto col_name = column.GetName();
+          auto col_type = Type::TypeIdToString(column.GetType());
+          auto col_length = std::to_string (column.GetLength());
+          auto index = std::to_string (column.GetOffset());
+          const std::string Schema_insert_query = "insert into meta_schemas values("+str_2+","+index+","+col_length+",'"+col_name+"','"+col_type+"');";
+          std::cerr<< Schema_insert_query;
+          ExecuteSqlTxn(Schema_insert_query, writer, binder, txn);
+         // std::cerr<<"\nPage2 name :" << info_2->name_;
+         LOG_DEBUG("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
+        }
+        }
         LOG_DEBUG("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK");
         std::cerr<<"\nPage name :" << info->name_;
+        // if (info->table_->GetFirstPageId() == 0 || info->table_->GetFirstPageId() == 1){
+        // buffer_pool_manager_->FlushPage(info->table_->GetFirstPageId());
+
+        // }
         buffer_pool_manager_->FlushPage(0);
+        buffer_pool_manager_->FlushPage(1);
+       // buffer_pool_manager_->FlushPage(2);
         continue;
       }
       case StatementType::INDEX_STATEMENT: {

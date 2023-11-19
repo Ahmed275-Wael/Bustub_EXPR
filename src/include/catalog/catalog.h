@@ -124,7 +124,7 @@ class Catalog {
       // else{
         // auto meta_tables_Tableheap = std::make_unique<TableHeap>(bpm_, lock_manager_, log_manager_,0);
         //auto table_oid = catalog_->Get_next_table_oid_().fetch_add(1);
-        std::vector<Column> columns {Column{"table_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
+        std::vector<Column> columns {Column{"page_id", TypeId::INTEGER},Column{"table_name", TypeId::VARCHAR, 30}};
         get_CatalogTable(columns, "meta_tables", txn);
         // Schema schema(columns);
         // auto meta = std::make_unique<TableInfo>(schema, "meta_tables", std::move(meta_tables_Tableheap), 0);

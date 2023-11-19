@@ -56,7 +56,12 @@ auto BufferPoolManagerInstance::NewPgImp(page_id_t *page_id) -> Page * {
   free_list_.pop_front();
 
   // initialize the page
-  pages_[frame_id].page_id_ = AllocatePage();
+  page_id_t newpageId =  AllocatePage();
+  while(pageSet.find(newpageId) != pageSet.end()){
+    newpageId =  AllocatePage();
+  }
+  pages_[frame_id].page_id_ = newpageId;
+  pageSet.insert(newpageId);
   pages_[frame_id].ResetMemory();
   pages_[frame_id].is_dirty_ = false;
   pages_[frame_id].pin_count_ = 1;
@@ -92,6 +97,7 @@ auto BufferPoolManagerInstance::FetchPgImp(page_id_t page_id) -> Page * {
 
   // fetch page from disk
   pages_[frame_id].page_id_ = page_id;
+  pageSet.insert(page_id);
   pages_[frame_id].is_dirty_ = false;
   pages_[frame_id].pin_count_ = 1;
   disk_manager_->ReadPage(page_id, pages_[frame_id].GetData());

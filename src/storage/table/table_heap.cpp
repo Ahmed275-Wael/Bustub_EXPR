@@ -31,7 +31,7 @@ TableHeap::TableHeap(BufferPoolManager *buffer_pool_manager, LockManager *lock_m
                 "Couldn't retrieve a page for the table heap");
   //std::cerr<<"RRRRRRRRIIIIIIIIIIDDDDDDDD"<<rid.ToString();
   //first_page->Init(first_page_id_, BUSTUB_PAGE_SIZE, INVALID_LSN, log_manager_, nullptr);
-  buffer_pool_manager_->UnpinPage(first_page_id_, false);    
+  buffer_pool_manager_->UnpinPage(first_page_id_, true);    
       }
 
 TableHeap::TableHeap(BufferPoolManager *buffer_pool_manager, LockManager *lock_manager, LogManager *log_manager,

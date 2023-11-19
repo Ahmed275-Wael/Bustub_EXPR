@@ -15,6 +15,7 @@
 #include <list>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <set>
 
 #include "buffer/buffer_pool_manager.h"
 #include "buffer/lru_k_replacer.h"
@@ -150,6 +151,8 @@ class BufferPoolManagerInstance : public BufferPoolManager {
   /** Bucket size for the extendible hash table */
   const size_t bucket_size_ = 4;
 
+  //Pages Set
+  std::set<page_id_t> pageSet;
   /** Array of buffer pool pages. */
   Page *pages_;
   /** Pointer to the disk manager. */

@@ -119,7 +119,6 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertAndShift(const KeyType &k,const Value
 
             break;
         }
-        
            for (int j = this->GetSize() + 1; j > i; j--) {
             array_[j] = array_[j - 1];   
            }
@@ -132,10 +131,10 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetArraySize() const -> int {
     return this->GetSize() + 1;
 }
-
+//FLAGGGG
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInFullNode(const KeyType &k,const ValueType &Pointer,KeyComparator &comparator, BPlusTreeInternalPage* reciever) -> MappingType {
-      BPlusTreeInternalPage<KeyType, ValueType, KeyComparator> temporaryPage;
+      BPlusTreeInternalPage<KeyType, ValueType, KeyComparator> temporaryPage;//will try to change it
       temporaryPage.SetMaxSize(this->GetMaxSize() + 1); //Just For Holding all so i can split easily (This step is for simplification)
       temporaryPage.SetSize(0);
       temporaryPage.SetPageType(IndexPageType::INTERNAL_PAGE);
@@ -157,7 +156,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInFullNode(const KeyType &k,const Val
         this->pop();
       }
   int median = floor(temporaryPage.GetSize() / 2.0);
- 
+
 
   for (int i = 1; i < median + 1; i++) {
       this->Insert(temporaryPage.ValueAt(i - 1), temporaryPage.KeyAt(i), temporaryPage.ValueAt(i), comparator);

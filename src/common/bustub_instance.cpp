@@ -70,7 +70,7 @@ BustubInstance::BustubInstance(const std::string &db_file_name) {
   bool init = disk_manager_->GetInit();
   
   // Catalog.
-  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_, txn_manager_->Begin(),init);
+  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_, txn_manager_->Begin(),  init);
   // Binder.
   
   std::shared_lock<std::shared_mutex> l(catalog_lock_);
@@ -114,8 +114,17 @@ BustubInstance::BustubInstance() {
   checkpoint_manager_ = new CheckpointManager(txn_manager_, log_manager_, buffer_pool_manager_);
 
   // Catalog.
-  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_,txn_manager_->Begin(),true);
-
+  catalog_ = new Catalog(buffer_pool_manager_, lock_manager_, log_manager_,txn_manager_->Begin(), true);
+  std::shared_lock<std::shared_mutex> l(catalog_lock_);
+  binder_ = new bustub::Binder(*catalog_);
+  l.unlock();
+  auto writer = bustub::FortTableWriter();
+  std::string Catalog_init_query = "create table meta_tables(page_id INTEGER,table_name VARCHAR(30));";
+  ExecuteSql(Catalog_init_query, writer);
+  std::string Schema_Init_query = "create table meta_schemas(table_page_id INTEGER,index INTEGER,col_len INTEGER,col_name VARCHAR(30),col_type VARCHAR(30));";
+  ExecuteSql(Schema_Init_query, writer);
+  LOG_DEBUG("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  
   // Execution engine.
   execution_engine_ = new ExecutionEngine(buffer_pool_manager_, txn_manager_, catalog_);
 }
@@ -185,6 +194,7 @@ queries after you have implemented necessary query executors. Use `explain` to
 see the execution plan of your query.
 Slam ya ebn el3beta)";
   WriteOneCell(help, writer);
+  buffer_pool_manager_->FlushAllPages();
   this->~BustubInstance();
   exit(0);
 }

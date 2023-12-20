@@ -129,8 +129,8 @@ auto main(int argc, char **argv) -> int {
     return 1;
   }
 
-  auto bustub = std::make_unique<bustub::BustubInstance>();
-  auto writer = bustub::SimpleStreamWriter(std::cerr);
+  bustub::BustubInstance* bustub = new bustub::BustubInstance();
+  auto writer = bustub::FortTableWriter();
 
   // create schema
   auto schema = "CREATE TABLE nft(id int, terrier int);";
@@ -196,7 +196,7 @@ auto main(int argc, char **argv) -> int {
     std::stringstream ss;
     auto writer = bustub::SimpleStreamWriter(ss, true);
     auto txn = bustub->txn_manager_->Begin(nullptr, bustub::IsolationLevel::REPEATABLE_READ);
-    bustub->ExecuteSqlTxn(query, writer, txn);
+    bustub->ExecuteSqlTxn(query, writer, *(bustub->binder_),txn);
     bustub->txn_manager_->Commit(txn);
     delete txn;
     if (ss.str() != fmt::format("{}\t\n", BUSTUB_NFT_NUM)) {
@@ -235,7 +235,7 @@ auto main(int argc, char **argv) -> int {
         if (enable_update) {
           auto txn = bustub->txn_manager_->Begin(nullptr, bustub::IsolationLevel::REPEATABLE_READ);
           std::string query = fmt::format("UPDATE nft SET terrier = {} WHERE id = {}", terrier_id, nft_id);
-          if (!bustub->ExecuteSqlTxn(query, writer, txn)) {
+          if (!bustub->ExecuteSqlTxn(query, writer, *(bustub->binder_),txn)) {
             txn_success = false;
           }
 
@@ -256,7 +256,7 @@ auto main(int argc, char **argv) -> int {
           auto txn = bustub->txn_manager_->Begin(nullptr, bustub::IsolationLevel::REPEATABLE_READ);
 
           std::string query = fmt::format("DELETE FROM nft WHERE id = {}", nft_id);
-          if (!bustub->ExecuteSqlTxn(query, writer, txn)) {
+          if (!bustub->ExecuteSqlTxn(query, writer, *(bustub->binder_),txn)) {
             txn_success = false;
           }
 
@@ -276,7 +276,7 @@ auto main(int argc, char **argv) -> int {
             txn = bustub->txn_manager_->Begin(nullptr, bustub::IsolationLevel::REPEATABLE_READ);
 
             query = fmt::format("INSERT INTO nft VALUES ({}, {})", nft_id, terrier_id);
-            if (!bustub->ExecuteSqlTxn(query, writer, txn)) {
+            if (!bustub->ExecuteSqlTxn(query, writer, *(bustub->binder_),txn)) {
               txn_success = false;
             }
 
@@ -321,7 +321,7 @@ auto main(int argc, char **argv) -> int {
         bool txn_success = true;
 
         std::string query = fmt::format("SELECT count(*) FROM nft WHERE terrier = {}", terrier_id);
-        if (!bustub->ExecuteSqlTxn(query, writer, txn)) {
+        if (!bustub->ExecuteSqlTxn(query, writer, *(bustub->binder_),txn)) {
           txn_success = false;
         }
 
@@ -349,7 +349,7 @@ auto main(int argc, char **argv) -> int {
     std::stringstream ss;
     auto writer = bustub::SimpleStreamWriter(ss, true);
     auto txn = bustub->txn_manager_->Begin(nullptr, bustub::IsolationLevel::REPEATABLE_READ);
-    bustub->ExecuteSqlTxn("SELECT count(*) FROM nft", writer, txn);
+    bustub->ExecuteSqlTxn("SELECT count(*) FROM nft", writer, *(bustub->binder_),txn);
     bustub->txn_manager_->Commit(txn);
     delete txn;
     if (ss.str() != fmt::format("{}\t\n", BUSTUB_NFT_NUM)) {

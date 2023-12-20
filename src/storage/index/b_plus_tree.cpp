@@ -91,7 +91,7 @@ namespace bustub {
   auto BPLUSTREE_TYPE::Insert(const KeyType & key,
     const ValueType & value, Transaction * transaction) -> bool {
       if (transaction != nullptr) {
-        LOG_DEBUG("Trying to aquire wLatch");
+    LOG_DEBUG("Trying to aquire wLatch");
     rootLatch.WLock();
     transaction -> AddIntoPageSet(nullptr);
       }
@@ -100,6 +100,7 @@ namespace bustub {
       LeafPage * rootPage = BuildRootNode < LeafPage > (leaf_max_size_);
       bool result = rootPage -> Insert(key, value, comparator_);
       buffer_pool_manager_->UnpinPage(rootPage->GetPageId(), true);
+      std::cerr<<"llllllllllllllllllllllllllllllllllllllllllllllllllllllThis is the root page id = "<< rootPage->GetPageId()<<"\n";
       ClearLatches(INSERT_TRAVERSE, transaction, true);
       
       return result;
@@ -951,6 +952,7 @@ namespace bustub {
     internalPage.Insert(pageId1, index_key, pageId2, comparator);
     return 2;
   }
+
   INDEX_TEMPLATE_ARGUMENTS
   auto BPLUSTREE_TYPE::GetInvalidPair() -> std::pair < KeyType, page_id_t > {
     KeyType k;
@@ -976,7 +978,7 @@ namespace bustub {
     BPlusTreePage * BPage = reinterpret_cast < BPlusTreePage * > (page);
     if (type == INSERT_TRAVERSE) {
       page -> WLatch();
-           if ((BPage->GetSize() < BPage->GetMaxSize() - 1 || (!BPage->IsLeafPage() && BPage->GetSize() == BPage->GetMaxSize() - 1)) && !BPage->IsRootPage()) {
+      if ((BPage->GetSize() < BPage->GetMaxSize() - 1 || (!BPage->IsLeafPage() && BPage->GetSize() == BPage->GetMaxSize() - 1)) && !BPage->IsRootPage()) {
         ClearLatches(type, transaction, isChanged);
       }
       transaction -> AddIntoPageSet(page);

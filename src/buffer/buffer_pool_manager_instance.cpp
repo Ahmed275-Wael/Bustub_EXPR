@@ -36,7 +36,7 @@ BufferPoolManagerInstance::BufferPoolManagerInstance(size_t pool_size, DiskManag
 }
 
 BufferPoolManagerInstance::~BufferPoolManagerInstance() {
-  FlushAllPgsImp();
+//  FlushAllPgsImp();
   delete[] pages_;
   delete page_table_;
   delete replacer_;
